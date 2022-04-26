@@ -124,10 +124,11 @@ a, button, input, select {
 	align-items: center;
 	justify-content: center;
 	margin-top: 20px;
+	flex-wrap: wrap;
 }
 .link-btn{
 	margin-left: 10px;
 	margin-right: 10px;
 	font-size: 1.2em;
-	
+
 }
