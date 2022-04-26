@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>three.js webgl - shader [Monjori]</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<link type="text/css" rel="stylesheet" href="main.css">
+	</head>
+	<body>
+
+		<div id="container"></div>
+<img  src="img/logo-01.png" width=20%" id="logo"></img>
+<h1 class="big-text">Another Software</h1>
+<p class="sub-text">We create dWeb universe</p>
+<p class="sub-text">Ecosystem software developer for decentralized blockchain systems, validators, digital reformators, world builders.</p>
+<div class="linklist"><a href="https://another.money" class="link-btn">$ANO coin</a> <a href="https://twitter.com/AnotherSoftware" class="link-btn">Twitter account</a><a href="https://www.mintscan.io/chihuahua/validators/chihuahuavaloper1vjyzk9z07d3zmf4j0c4d8f9wejsqgn863kncwh" class="link-btn">Chihuahua validator</a><a href="https://hns.is" class="link-btn">HNS.is handshake bridge</a> <a href="https://github.com/anothersoft" class="link-btn">Github</a></div>
+		<script id="vertexShader" type="x-shader/x-vertex">
+
+			varying vec2 vUv;
+
+			void main()	{
+
+				vUv = uv;
+
+				gl_Position = vec4( position, 1.0 );
+
+			}
+
+		</script>
+
+		<script id="fragmentShader" type="x-shader/x-fragment">
+            uniform float iTime;
+            uniform vec2 iMouse;
+             uniform vec3 iResolution;
+             #define iterations 17
+#define formuparam 0.53
+
+#define volsteps 20
+#define stepsize 0.1
+
+#define zoom   0.800
+#define tile   0.850
+#define speed  0.010 
+
+#define brightness 0.0015
+#define darkmatter 0.300
+#define distfading 0.730
+#define saturation 0.850
+
+
+void mainImage( out vec4 fragColor, in vec2 fragCoord )
+{
+	//get coords and direction
+	vec2 uv=fragCoord.xy/iResolution.xy-.5;
+	uv.y*=iResolution.y/iResolution.x;
+	vec3 dir=vec3(uv*zoom,1.);
+	float time=iTime*speed+.25;
+
+	//mouse rotation
+	float a1=.5+iMouse.x/iResolution.x*2.;
+	float a2=.8+iMouse.y/iResolution.y*2.;
+	mat2 rot1=mat2(cos(a1),sin(a1),-sin(a1),cos(a1));
+	mat2 rot2=mat2(cos(a2),sin(a2),-sin(a2),cos(a2));
+	dir.xz*=rot1;
+	dir.xy*=rot2;
+	vec3 from=vec3(1.,.5,0.5);
+	from+=vec3(time*2.,time,-2.);
+	from.xz*=rot1;
+	from.xy*=rot2;
+	
+	//volumetric rendering
+	float s=0.1,fade=1.;
+	vec3 v=vec3(0.);
+	for (int r=0; r<volsteps; r++) {
+		vec3 p=from+s*dir*.5;
+		p = abs(vec3(tile)-mod(p,vec3(tile*2.))); // tiling fold
+		float pa,a=pa=0.;
+		for (int i=0; i<iterations; i++) { 
+			p=abs(p)/dot(p,p)-formuparam; // the magic formula
+			a+=abs(length(p)-pa); // absolute sum of average change
+			pa=length(p);
+		}
+		float dm=max(0.,darkmatter-a*a*.001); //dark matter
+		a*=a*a; // add contrast
+		if (r>6) fade*=1.-dm; // dark matter, don't render near
+		//v+=vec3(dm,dm*.5,0.);
+		v+=fade;
+		v+=vec3(s,s*s,s*s*s*s)*a*brightness*fade; // coloring based on distance
+		fade*=distfading; // distance fading
+		s+=stepsize;
+	}
+	v=mix(vec3(length(v)),v,saturation); //color adjust
+	fragColor = vec4(v*.01,1.);	
+	
+}
+
+void main() {
+    mainImage(gl_FragColor, gl_FragCoord.xy);
+  }
+
+		</script>
+
+		<!-- Import maps polyfill -->
+		<!-- Remove this when import maps will be widely supported -->
+		<script async src="https://unpkg.com/es-module-shims@1.3.6/dist/es-module-shims.js"></script>
+
+		<script type="importmap">
+			{
+				"imports": {
+					"three": "/build/three.module.js"
+				}
+			}
+		</script>
+
+		<script type="module">
+
+			import * as THREE from 'three';
+
+			let camera, scene, renderer;
+            let booster=-1;
+			let uniforms;
+
+			init();
+			animate();
+
+			function init() {
+
+				const container = document.getElementById( 'container' );
+
+				camera = new THREE.OrthographicCamera( - 1, 1, 1, - 1, 0, 1 );
+
+				scene = new THREE.Scene();
+
+				const geometry = new THREE.PlaneGeometry( 2, 2 );
+
+				uniforms = {
+				color: { value: new THREE.Color( 0xffffff ) },
+				iResolution: { value: new THREE.Vector2(innerWidth, innerHeight) },
+				iTime: { value: 10.0 },
+				iFrame: { value: 1.0 },
+				'iChannelTime[4]': { value: 20.0 },
+				iMouse: { value: new THREE.Vector2(innerWidth/2, innerHeight/2) },
+				iDatee: { value: '(2019, 1, 23, 3600)' },
+				iSampleRatee: { value:  44100.0 }
+				};
+
+				const material = new THREE.ShaderMaterial( {
+
+					uniforms: uniforms,
+					vertexShader: document.getElementById( 'vertexShader' ).textContent,
+					fragmentShader: document.getElementById( 'fragmentShader' ).textContent
+
+				} );
+
+				const mesh = new THREE.Mesh( geometry, material );
+				scene.add( mesh );
+
+				renderer = new THREE.WebGLRenderer();
+				renderer.setPixelRatio( window.devicePixelRatio );
+				container.appendChild( renderer.domElement );
+
+				onWindowResize();
+
+				window.addEventListener( 'resize', onWindowResize );
+
+			}
+
+			function onWindowResize() {
+
+				renderer.setSize( window.innerWidth, window.innerHeight );
+
+			}
+
+			//
+
+
+			function animate() {
+
+				requestAnimationFrame( animate );
+                booster=booster-1;
+				uniforms[ 'iTime' ].value += 0.001
+
+				renderer.render( scene, camera );
+
+			}
+             window.onmousemove = function(e) {
+                uniforms[ 'iMouse' ].value.x += e.movementX/300
+                uniforms[ 'iMouse' ].value.y += e.movementY/300
+            }
+
+		</script>
+
+	</body>
+</html>
