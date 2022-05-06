@@ -32,68 +32,129 @@
             uniform float iTime;
             uniform vec2 iMouse;
              uniform vec3 iResolution;
-             #define iterations 17
-#define formuparam 0.53
+            #define eps 0.005
+#define far 40.
+#define time iTime*.25
+#define PI 3.1415926
 
-#define volsteps 20
-#define stepsize 0.1
+#define PSD pow(abs(textureLod(iChannel0, vec2(.0), 0.).r), 2.)
 
-#define zoom   0.800
-#define tile   0.850
-#define speed  0.010 
+// Variants
+//#define rings
+//#define polar
+//#define warp
 
-#define brightness 0.0015
-#define darkmatter 0.300
-#define distfading 0.730
-#define saturation 0.850
+//#define audio
 
-
-void mainImage( out vec4 fragColor, in vec2 fragCoord )
+vec2 rotate(vec2 p, float a)
 {
-	//get coords and direction
-	vec2 uv=fragCoord.xy/iResolution.xy-.5;
-	uv.y*=iResolution.y/iResolution.x;
-	vec3 dir=vec3(uv*zoom,1.);
-	float time=iTime*speed+.25;
-
-	//mouse rotation
-	float a1=.5+iMouse.x/iResolution.x*2.;
-	float a2=.8+iMouse.y/iResolution.y*2.;
-	mat2 rot1=mat2(cos(a1),sin(a1),-sin(a1),cos(a1));
-	mat2 rot2=mat2(cos(a2),sin(a2),-sin(a2),cos(a2));
-	dir.xz*=rot1;
-	dir.xy*=rot2;
-	vec3 from=vec3(1.,.5,0.5);
-	from+=vec3(time*2.,time,-2.);
-	from.xz*=rot1;
-	from.xy*=rot2;
-	
-	//volumetric rendering
-	float s=0.1,fade=1.;
-	vec3 v=vec3(0.);
-	for (int r=0; r<volsteps; r++) {
-		vec3 p=from+s*dir*.5;
-		p = abs(vec3(tile)-mod(p,vec3(tile*2.))); // tiling fold
-		float pa,a=pa=0.;
-		for (int i=0; i<iterations; i++) { 
-			p=abs(p)/dot(p,p)-formuparam; // the magic formula
-			a+=abs(length(p)-pa); // absolute sum of average change
-			pa=length(p);
-		}
-		float dm=max(0.,darkmatter-a*a*.001); //dark matter
-		a*=a*a; // add contrast
-		if (r>6) fade*=1.-dm; // dark matter, don't render near
-		//v+=vec3(dm,dm*.5,0.);
-		v+=fade;
-		v+=vec3(s,s*s,s*s*s*s)*a*brightness*fade; // coloring based on distance
-		fade*=distfading; // distance fading
-		s+=stepsize;
-	}
-	v=mix(vec3(length(v)),v,saturation); //color adjust
-	fragColor = vec4(v*.01,1.);	
-	
+    float t = atan(p.y, p.x)+a;
+    float l = length(p);
+    return vec2(l*cos(t), l*sin(t));
 }
 
+float sdTorus( vec3 p, vec2 t )
+{
+  vec2 q = vec2(length(p.xz)-t.x,p.y);
+  return length(q)-t.y;
+}
+
+vec3 tri(in vec3 x){return abs(x-floor(x)-.5);} // Triangle function.
+
+float distort(vec3 p)
+{
+    //return sin(p.x + sin(p.y + time * .1) + sin(p.z)*p.z + p.x + p.y + time);
+    return dot(tri(p+time) + sin(tri(p+time)), vec3(.666));
+}
+
+float trap;
+
+float map(vec3 p)
+{
+    p.z += .2;
+    p += distort(p*distort(p))*.1;
+    #ifdef audio
+    trap = dot(sin(p), 1.-abs(p-PSD))*1.2;
+    #else
+    trap = dot(sin(p), 1.-abs(p))*1.2;
+    #endif
+    float d = -sdTorus(p, vec2(1., .7)) + distort(p)*.05;
+    
+    #ifdef rings
+    p.y -= .2;
+    for(int i = 0; i < 3; i++)
+    {
+        p.y += float(i)*.1;
+        
+    	d = min(d, sdTorus(p, vec2(.75, .01))-distort(p*float(i))*.01);
+    }
+    #endif
+    
+    return d;
+}
+
+vec3 calcNormal(vec3 p)
+{
+    vec2 e = vec2(eps, 0);
+    return normalize(vec3(
+        map(p+e.xyy)-map(p-e.xyy),
+        map(p+e.yxy)-map(p-e.yxy),
+        map(p+e.yyx)-map(p-e.yyx)
+        ));
+}
+
+float trace(vec3 r, vec3 d, float start)
+{
+    float m, t=start;
+    for (int i = 0; i < 100; i++)
+    {
+        m = map(r + d * t);
+        t += m;
+        if (m < eps || t > far) break;
+    }
+    return t;
+}
+
+void mainImage( out vec4 f, in vec2 g )
+{
+	vec2 R=iResolution.xy, u = (g+g-R)/R.y;
+    
+    #ifdef audio
+    u *= sin(PSD*5.);
+    #endif
+    
+    #ifdef polar
+    u = rotate(u, 2.*atan(u.y, u.x) + time);
+    #endif
+    
+    #ifdef warp
+    u = abs(u)/dot(u, u) - vec2(step(1., time));
+    #endif
+    
+    vec3 r = vec3(-0.7, 0, 1), d = normalize(vec3(u, -1)), p, n, col;
+    col = vec3(0.);
+    float t = trace(r, d, 0.);
+    p = r + d * t;
+    
+    n = calcNormal(p);
+    
+    if (t < far)
+    {
+        vec3 objcol = vec3(trap/abs(1.-trap), trap*trap, 1.-trap);
+        vec3 lp = vec3(3, 3, 30);
+        vec3 ld = lp - p;
+        float len = length(ld);
+        float atten = max(0., 1./(len*len));
+        ld /= len;
+        float amb = .20;
+        float diff = max(0., dot(ld, n));
+        float spec = pow(max(0., dot(reflect(-ld, n), r)), 8.);
+        float ref = trace(r, reflect(d, n), eps*5.);
+        col = objcol * (((diff*.8+amb*.8)+.1*spec)+atten*.1)*ref;
+    }
+    
+    f = vec4(col, 1);
+}
 void main() {
     mainImage(gl_FragColor, gl_FragCoord.xy);
   }
@@ -178,7 +239,7 @@ void main() {
 
 				requestAnimationFrame( animate );
                 booster=booster-1;
-				uniforms[ 'iTime' ].value += 0.001
+				uniforms[ 'iTime' ].value += 0.01
 
 				renderer.render( scene, camera );
 
