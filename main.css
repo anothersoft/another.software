@@ -127,6 +127,10 @@ a, button, input, select {
 	flex-wrap: wrap;
 }
 .link-btn{
+	padding:3px;
+	padding-left: 5px;
+	padding-right: 5px;
+	background-color: #000;
 	margin-left: 10px;
 	margin-right: 10px;
 	font-size: 1.2em;
