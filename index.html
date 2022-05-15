@@ -7,15 +7,21 @@
 		<link type="text/css" rel="stylesheet" href="main.css">
 	</head>
 	<body>
-
+		<span id="fps"></span>	
 		<div id="container"></div>
-<img  src="img/logo-01.png" width=20%" id="logo"></img>
-<h1 class="big-text">Another Software</h1>
-<p class="sub-text">We create dWeb universe</p>
-<p class="sub-text">Ecosystem software developer for decentralized blockchain systems, validators, digital reformators, world builders.</p>
-<div class="linklist"><a href="https://another.money" class="link-btn">$ANO coin</a><a href="https://another.software/asvt/mintpaper.pdf" class="link-btn">$ASVT Mintpaper</a> <a href="https://twitter.com/AnotherSoftware" class="link-btn">Twitter account</a><a href="https://hns.is" class="link-btn">HNS.is handshake bridge</a> <a href="https://github.com/anothersoft" class="link-btn">Github</a><a href="https://ping.pub/sifchain/staking/sifvaloper1sz4vscgjuqqntt2pjs65u96mhy5tu5qw958nxt" class="link-btn">Sifchain Validator</a></div>
-	<script id="vertexShader" type="x-shader/x-vertex">
-
+		<img  src="img/logo-01.png" width="20%" id="logo"></img>
+		<h1 class="big-text">Another Software</h1>
+		<p class="sub-text">We create dWeb universe</p>
+		<p class="sub-text">Ecosystem software developer for decentralized blockchain systems, validators, digital reformators, world builders.</p>
+		<div class="linklist">
+			<a href="https://another.money" class="link-btn">$ANO coin</a>
+			<a href="https://another.software/asvt/mintpaper.pdf" class="link-btn">$ASVT Mintpaper</a>
+			<a href="https://twitter.com/AnotherSoftware" class="link-btn">Twitter account</a>
+			<a href="https://hns.is" class="link-btn">HNS.is handshake bridge</a>
+			<a href="https://github.com/anothersoft" class="link-btn">Github</a>
+			<a href="https://ping.pub/sifchain/staking/sifvaloper1sz4vscgjuqqntt2pjs65u96mhy5tu5qw958nxt" class="link-btn">Sifchain Validator</a>
+		</div>
+		<script id="vertexShader" type="x-shader/x-vertex">
 			varying vec2 vUv;
 
 			void main()	{
@@ -25,140 +31,141 @@
 				gl_Position = vec4( position, 1.0 );
 
 			}
-
 		</script>
-
 		<script id="fragmentShader" type="x-shader/x-fragment">
             uniform float iTime;
             uniform vec2 iMouse;
-             uniform vec3 iResolution;
+            uniform vec3 iResolution;
             #define eps 0.005
-#define far 40.
-#define time iTime*.25
-#define PI 3.1415926
 
-#define PSD pow(abs(textureLod(iChannel0, vec2(.0), 0.).r), 2.)
+			// 
 
-// Variants
-//#define rings
-//#define polar
-//#define warp
+			#define far 40.
+			#define time iTime*.25
+			#define PI 3.1415926
 
-//#define audio
+			#define PSD pow(abs(textureLod(iChannel0, vec2(.0), 0.).r), 2.)
 
-vec2 rotate(vec2 p, float a)
-{
-    float t = atan(p.y, p.x)+a;
-    float l = length(p);
-    return vec2(l*cos(t), l*sin(t));
-}
+			// Variants
+			//#define rings
+			//#define polar
+			//#define warp
 
-float sdTorus( vec3 p, vec2 t )
-{
-  vec2 q = vec2(length(p.xz)-t.x,p.y);
-  return length(q)-t.y;
-}
+			//#define audio
 
-vec3 tri(in vec3 x){return abs(x-floor(x)-.5);} // Triangle function.
+			vec2 rotate(vec2 p, float a)
+			{
+			    float t = atan(p.y, p.x)+a;
+			    float l = length(p);
+			    return vec2(l*cos(t), l*sin(t));
+			}
 
-float distort(vec3 p)
-{
-    //return sin(p.x + sin(p.y + time * .1) + sin(p.z)*p.z + p.x + p.y + time);
-    return dot(tri(p+time) + sin(tri(p+time)), vec3(.666));
-}
+			float sdTorus( vec3 p, vec2 t )
+			{
+			  vec2 q = vec2(length(p.xz)-t.x,p.y);
+			  return length(q)-t.y;
+			}
 
-float trap;
+			vec3 tri(in vec3 x){return abs(x-floor(x)-.5);} // Triangle function.
 
-float map(vec3 p)
-{
-    p.z += .2;
-    p += distort(p*distort(p))*.1;
-    #ifdef audio
-    trap = dot(sin(p), 1.-abs(p-PSD))*1.2;
-    #else
-    trap = dot(sin(p), 1.-abs(p))*1.2;
-    #endif
-    float d = -sdTorus(p, vec2(1., .7)) + distort(p)*.05;
+			float distort(vec3 p)
+			{
+			    //return sin(p.x + sin(p.y + time * .1) + sin(p.z)*p.z + p.x + p.y + time);
+			    return dot(tri(p+time) + sin(tri(p+time)), vec3(.666));
+			}
 
-    #ifdef rings
-    p.y -= .2;
-    for(int i = 0; i < 3; i++)
-    {
-        p.y += float(i)*.1;
+			float trap;
 
-    	d = min(d, sdTorus(p, vec2(.75, .01))-distort(p*float(i))*.01);
-    }
-    #endif
+			float map(vec3 p)
+			{
+			    p.z += .2;
+			    p += distort(p*distort(p))*.1;
+			    #ifdef audio
+			    trap = dot(sin(p), 1.-abs(p-PSD))*1.2;
+			    #else
+			    trap = dot(sin(p), 1.-abs(p))*1.2;
+			    #endif
+			    float d = -sdTorus(p, vec2(1., .7)) + distort(p)*.05;
 
-    return d;
-}
+			    #ifdef rings
+			    p.y -= .2;
+			    for(int i = 0; i < 3; i++)
+			    {
+			        p.y += float(i)*.1;
 
-vec3 calcNormal(vec3 p)
-{
-    vec2 e = vec2(eps, 0);
-    return normalize(vec3(
-        map(p+e.xyy)-map(p-e.xyy),
-        map(p+e.yxy)-map(p-e.yxy),
-        map(p+e.yyx)-map(p-e.yyx)
-        ));
-}
+			    	d = min(d, sdTorus(p, vec2(.75, .01))-distort(p*float(i))*.01);
+			    }
+			    #endif
 
-float trace(vec3 r, vec3 d, float start)
-{
-    float m, t=start;
-    for (int i = 0; i < 100; i++)
-    {
-        m = map(r + d * t);
-        t += m;
-        if (m < eps || t > far) break;
-    }
-    return t;
-}
+			    return d;
+			}
 
-void mainImage( out vec4 f, in vec2 g )
-{
-	vec2 R=iResolution.xy, u = (g+g-R)/R.y;
+			vec3 calcNormal(vec3 p)
+			{
+			    vec2 e = vec2(eps, 0);
+			    return normalize(vec3(
+			        map(p+e.xyy)-map(p-e.xyy),
+			        map(p+e.yxy)-map(p-e.yxy),
+			        map(p+e.yyx)-map(p-e.yyx)
+			        ));
+			}
 
-    #ifdef audio
-    u *= sin(PSD*5.);
-    #endif
+			float trace(vec3 r, vec3 d, float start)
+			{
+			    float m, t=start;
+			    for (int i = 0; i < 100; i++)
+			    {
+			        m = map(r + d * t);
+			        t += m;
+			        if (m < eps || t > far) break;
+			    }
+			    return t;
+			}
 
-    #ifdef polar
-    u = rotate(u, 2.*atan(u.y, u.x) + time);
-    #endif
+			void mainImage( out vec4 f, in vec2 g )
+			{
+				vec2 R=iResolution.xy, u = (g+g-R)/R.y;
 
-    #ifdef warp
-    u = abs(u)/dot(u, u) - vec2(step(1., time));
-    #endif
+			    #ifdef audio
+			    u *= sin(PSD*5.);
+			    #endif
 
-    vec3 r = vec3(-0.7, 0, 1), d = normalize(vec3(u, -1)), p, n, col;
-    col = vec3(0.);
-    float t = trace(r, d, 0.);
-    p = r + d * t;
+			    #ifdef polar
+			    u = rotate(u, 2.*atan(u.y, u.x) + time);
+			    #endif
 
-    n = calcNormal(p);
+			    #ifdef warp
+			    u = abs(u)/dot(u, u) - vec2(step(1., time));
+			    #endif
 
-    if (t < far)
-    {
-        vec3 objcol = vec3(trap/abs(1.-trap), trap*trap, 1.-trap);
-        vec3 lp = vec3(3, 3, 30);
-        vec3 ld = lp - p;
-        float len = length(ld);
-        float atten = max(0., 1./(len*len));
-        ld /= len;
-        float amb = .20;
-        float diff = max(0., dot(ld, n));
-        float spec = pow(max(0., dot(reflect(-ld, n), r)), 8.);
-        float ref = trace(r, reflect(d, n), eps*5.);
-        col = objcol * (((diff*.8+amb*.8)+.1*spec)+atten*.1)*ref;
-    }
+			    vec3 r = vec3(-0.7, 0, 1), d = normalize(vec3(u, -1)), p, n, col;
+			    col = vec3(0.);
+			    float t = trace(r, d, 0.);
+			    p = r + d * t;
 
-    f = vec4(col, 1);
-}
-void main() {
-    mainImage(gl_FragColor, gl_FragCoord.xy);
-  }
+			    n = calcNormal(p);
 
+			    if (t < far)
+			    {
+			        vec3 objcol = vec3(trap/abs(1.-trap), trap*trap, 1.-trap);
+			        vec3 lp = vec3(3, 3, 30);
+			        vec3 ld = lp - p;
+			        float len = length(ld);
+			        float atten = max(0., 1./(len*len));
+			        ld /= len;
+			        float amb = .20;
+			        float diff = max(0., dot(ld, n));
+			        float spec = pow(max(0., dot(reflect(-ld, n), r)), 8.);
+			        float ref = trace(r, reflect(d, n), eps*5.);
+			        col = objcol * (((diff*.8+amb*.8)+.1*spec)+atten*.1)*ref;
+			    }
+
+			    f = vec4(col, 1);
+			}
+
+			void main() {
+			    mainImage(gl_FragColor, gl_FragCoord.xy);
+  			}
 		</script>
 
 		<!-- Import maps polyfill -->
@@ -174,82 +181,112 @@ void main() {
 		</script>
 
 		<script type="module">
-
 			import * as THREE from 'three';
 
 			let camera, scene, renderer;
-            let booster=-1;
+			let booster=-1;
 			let uniforms;
 
-			init();
-			animate();
+			const bm = {};
 
-			function init() {
+			const treshold = 20;
 
-				const container = document.getElementById( 'container' );
+			function init()
+			{
+				const container = document.querySelector(`#container`);
+				
+				bm.filterStrength = 20;
+
+				bm.frameTime = 0;
+				bm.startRender = new Date;
+				bm.init = new Date;
+				bm.initFrames = 0;
 
 				camera = new THREE.OrthographicCamera( - 1, 1, 1, - 1, 0, 1 );
-
 				scene = new THREE.Scene();
-
+				
 				const geometry = new THREE.PlaneGeometry( 2, 2 );
-
+				
 				uniforms = {
-				color: { value: new THREE.Color( 0xffffff ) },
-				iResolution: { value: new THREE.Vector2(innerWidth, innerHeight) },
-				iTime: { value: 10.0 },
-				iFrame: { value: 1.0 },
-				'iChannelTime[4]': { value: 20.0 },
-				iMouse: { value: new THREE.Vector2(innerWidth/2, innerHeight/2) },
-				iDatee: { value: '(2019, 1, 23, 3600)' },
-				iSampleRatee: { value:  44100.0 }
+					color: 			{ value: new THREE.Color( 0xffffff ) },
+					iResolution: 	{ value: new THREE.Vector2( innerWidth, innerHeight ) },
+					iTime: 			{ value: 10.0 },
+					iFrame: 			{ value: 1.0  },
+					'iChelTime[4]':{ value: 20.0  },
+					iMouse: 			{ value: new THREE.Vector2( innerWidth / 2, innerHeight / 2 ) },
+					iDatee: 			{ value: '(2019, 1, 23, 3600)' },
+					iSampleRatee: 	{ value: 44100.0 }
 				};
 
 				const material = new THREE.ShaderMaterial( {
-
 					uniforms: uniforms,
 					vertexShader: document.getElementById( 'vertexShader' ).textContent,
 					fragmentShader: document.getElementById( 'fragmentShader' ).textContent
-
 				} );
-
+				
 				const mesh = new THREE.Mesh( geometry, material );
+				
 				scene.add( mesh );
 
 				renderer = new THREE.WebGLRenderer();
 				renderer.setPixelRatio( window.devicePixelRatio );
+				
 				container.appendChild( renderer.domElement );
 
 				onWindowResize();
-
+				
 				window.addEventListener( 'resize', onWindowResize );
 
-			}
+				animate();
+				printFps();
 
-			function onWindowResize() {
+			};
 
+			function onWindowResize()
+			{
 				renderer.setSize( window.innerWidth, window.innerHeight );
-
+				bm.initFrames = 0;
+				animate();
 			}
 
 			//
 
+			function printFps()
+			{
+				bm.intRefid = setInterval( () => {
+					if (bm.frameTime !== 0) document.getElementById("fps").innerText = `${bm.frameTime.toFixed(1)} fps`;
+				}, 2_000 );
 
-			function animate() {
+			}
 
-				requestAnimationFrame( animate );
-                booster=booster-1;
+			function animate()
+			{
+				bm.time = ( bm.timeRender = new Date ) - bm.startRender;
+
+				if ( bm.initFrames >= 60 ) {
+					(parseInt( bm.frameTime ) >= treshold -2) && requestAnimationFrame( animate );
+				} else {
+					bm.initFrames+=1;
+					requestAnimationFrame( animate );
+				};
+				
+				bm.frameTime += ( bm.time - bm.frameTime ) / bm.filterStrength;
+
+				booster=booster-1;
 				uniforms[ 'iTime' ].value += 0.01
 
+				bm.startRender = new Date;
 				renderer.render( scene, camera );
 
 			}
-             window.onmousemove = function(e) {
-                uniforms[ 'iMouse' ].value.x += e.movementX/300
-                uniforms[ 'iMouse' ].value.y += e.movementY/300
-            }
 
+			init();
+
+			window.onmousemove = function(e)
+			{
+				uniforms[ 'iMouse' ].value.x += e.movementX/300
+				uniforms[ 'iMouse' ].value.y += e.movementY/300
+			};
 		</script>
-
 	</body>
 </html>
